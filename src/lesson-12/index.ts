@@ -4,27 +4,32 @@ import type { BufferLike, HeapBlock, IMemory, MemoryBlock, MemoryOptions } from 
 
 
 class Rc {
-  #rc = {
-    counter: 1
-  }
-
+  #rc: { counter: number }
   #pointer: HeapPointer
-  constructor(pointer: HeapPointer, rc = null as null | number) {
-    this.#pointer = pointer
 
-    if(rc !== null) {
-      this.#rc.counter++
+  constructor(pointer: HeapPointer, rcShared?: { counter: number }) {
+    this.#pointer = pointer
+    
+    if (rcShared) {
+      this.#rc = rcShared
+      this.#rc.counter++ 
+    } else {
+      this.#rc = { counter: 1 } 
     }
   } 
 
-  [Symbol.dispose]() {    
-    if(this.#rc.counter === 0) {
+  [Symbol.dispose]() {   
+    this.#rc.counter-- 
+
+    console.log(`ref counter: ${this.#rc.counter}`)
+
+    if (this.#rc.counter === 0) {
       this.#pointer.free()
     }
   }
 
   clone() {
-    return new Rc(this.#pointer, this.#rc.counter + 1)
+    return new Rc(this.#pointer, this.#rc)
   }
 
   get memory() {
@@ -285,7 +290,8 @@ const mem = new Memory(10 * 100, { stack: 100 });
   using pointer1 = new Rc(mem.alloc(128)) 
 
   {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
+     
+    
     using _ = pointer1.clone()
   } 
 }
