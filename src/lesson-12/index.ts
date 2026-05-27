@@ -284,16 +284,16 @@ class Memory implements IMemory {
 
 const mem = new Memory(10 * 100, { stack: 100 });
 
-
-
 {
   using pointer1 = new Rc(mem.alloc(128)) 
 
   {
      
     
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     using _ = pointer1.clone()
   } 
 }
-// count становится 0
+// count становится 1
+// freeblocks = 1
 console.log(mem.getStat().freeBlocks)
