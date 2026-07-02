@@ -1,14 +1,18 @@
-import { Signal, Computed, effect } from './core/index.ts'
+import { computed, ref, effect } from './core/index.ts'
 
-const firstName = new Signal('yury')
-const lastName = new Signal('bagdasaryan')
+const firstName = ref('yury')
+const lastName = ref('bagdasaryan')
 
 effect(() => {
   lastName.set('Ivanov')
   firstName.set('Ivan')
 })
 
-const fullName = new Computed(
+const isAdmin = computed(() => {
+  return lastName.get() === 'Ivanov' 
+})
+
+const fullName = computed(
   () => {
     const name = firstName.get()
     const surname = lastName.get()
@@ -20,6 +24,4 @@ const fullName = new Computed(
 
 firstName.set('Anton')
 
-
-
-console.log(fullName.get())
+console.log(fullName.get(), isAdmin.get())

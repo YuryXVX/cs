@@ -56,8 +56,6 @@ export class Computed<T> {
 
 }
 
-// 1 авторизация
-// 2 анализ по точкм продаж
-// 3 шапка и рейтинг
-// 4 ничего нет
-// 5 анализ воронка и динамика
+export function computed<T>(fn: ComputedValue<T>) {
+  return new Computed(fn)
+}

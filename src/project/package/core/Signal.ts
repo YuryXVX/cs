@@ -5,8 +5,6 @@ export type Listener<T> = (val?: T) => void
 function compare<T>(a: T, b: T) {
   return Object.is(a, b)
 }
-
-
 export class Signal<T> {
   #value: T
   #subscribers = new Set<Listener<T>>()
@@ -38,4 +36,8 @@ export class Signal<T> {
       this.#subscribers.forEach(cb => cb(newValue))
     }
   }
+}
+
+export function ref<T>(val: T) {
+  return new Signal(val)
 }
