@@ -1,8 +1,11 @@
-type Listener<T> = (val: T) => void
+import { getCurrentEffect } from "./effect.ts"
+
+export type Listener<T> = (val?: T) => void
 
 function compare<T>(a: T, b: T) {
   return Object.is(a, b)
 }
+
 
 export class Signal<T> {
   #value: T
@@ -21,6 +24,11 @@ export class Signal<T> {
   }
 
   get() {
+    const effect = getCurrentEffect()
+    if(effect) {
+      this.#subscribers.add(effect)
+    }
+
     return this.#value
   }
 

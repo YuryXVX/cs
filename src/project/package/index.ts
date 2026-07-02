@@ -1,16 +1,25 @@
-import { effect } from './core/effect.ts'
-import { Signal } from './core/index.ts'
+import { Signal, Computed, effect } from './core/index.ts'
 
-const signal = new Signal({
-  a: '1'
-})
+const firstName = new Signal('yury')
+const lastName = new Signal('bagdasaryan')
 
 effect(() => {
-  console.log('here', signal.get())
+  lastName.set('Ivanov')
+  firstName.set('Ivan')
 })
 
-signal.set({
-  a: '10',
-})
+const fullName = new Computed(
+  () => {
+    const name = firstName.get()
+    const surname = lastName.get()
+
+    return `${name}_${surname}`
+  }
+)
 
 
+firstName.set('Anton')
+
+
+
+console.log(fullName.get())
