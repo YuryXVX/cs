@@ -32,9 +32,9 @@ export class Hasher<Key extends object | string | number | null> extends Abstrac
     const str = this.#transform(key)
 
     for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i)
-        hash = ((hash << 5) - hash) + char
-        hash = hash >>> 0
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash >>> 0
     }
 
     return hash % capacity;

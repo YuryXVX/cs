@@ -18,11 +18,11 @@ export class Matrix<T extends TypedArray> {
   }
 
   set(row: number, col: number, value: number) {
-    this.#buffer[row * this.#width * col] = value
+    this.#buffer[row * this.#width + col] = value
   }
 
   get(row: number, col: number) {
-    return this.#buffer[row * this.#width * col] as number
+    return this.#buffer[row * this.#width + col] as number
   }
 
   get buffer() {
