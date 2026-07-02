@@ -1,20 +1,7 @@
-type Listener<T> = (val?: T) => void
-
-function type<T>(o: T) {
-  return typeof o
-}
-
-function isObject<T>(o: T) {
-  return type(o) === 'object' && o !== null
-}
-
+type Listener<T> = (val: T) => void
 
 function compare<T>(a: T, b: T) {
-  if(isObject(a) && isObject(b)) {
-    return Object.is(a, b)
-  }
-
-  return a !== b
+  return Object.is(a, b)
 }
 
 export class Signal<T> {
@@ -27,6 +14,10 @@ export class Signal<T> {
 
   subscribe(fn: Listener<T>) {
     this.#subscribers.add(fn)
+
+    return () => {
+      this.#subscribers.delete(fn)
+    }
   }
 
   get() {

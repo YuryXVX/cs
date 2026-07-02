@@ -1,10 +1,16 @@
+import { effect } from './core/effect.ts'
 import { Signal } from './core/index.ts'
 
-const signal = new Signal(1)
-
-
-signal.subscribe((newValue) => {
-  console.log({newValue})
+const signal = new Signal({
+  a: '1'
 })
 
-signal.set(2)
+effect(() => {
+  console.log('here', signal.get())
+})
+
+signal.set({
+  a: '10',
+})
+
+

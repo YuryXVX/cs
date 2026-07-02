@@ -24,6 +24,7 @@ export function indexOf<T, K>(
  
     const current = selector ? selector(item) : item;
 
+
     if(current) {
       if(current === el) {
         return mid
