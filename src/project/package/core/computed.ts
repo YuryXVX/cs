@@ -1,59 +1,79 @@
-import { getCurrentEffect, pushEffect, popEffect } from "./effect.ts";
+import { Effect, getCurrentEffect, popEffect, pushEffect, scheduleEffect, stopCollecting } from "./effect.ts";
 
 export type ComputedValue<T> = () => T
 
+
 export class Computed<T> {
   #fn: ComputedValue<T>
-  #dirty: boolean
   #firstRun: boolean
+  #isDirty: boolean
 
-  #deps = new Set<ComputedValue<T>>()
+  #subscribers = new Set<ComputedValue<T> | Effect>()
 
   #cacheValue: undefined | T
 
+
+  #cachedVersion = -1
+
   constructor(computed: ComputedValue<T>) {
     this.#fn = computed
-    this.#dirty = true
     this.#firstRun = true
-
+    this.#isDirty = false
     this.#cacheValue = undefined
   }
 
   get() {
-    if(this.#firstRun) {
-      this.#firstRun = false
-      this.track()
-    }
-
     const currentEffect = getCurrentEffect()
 
     if(currentEffect) {
-      this.#deps.add(currentEffect)
+      this.#subscribers.add(currentEffect)
+    }
+    
+    if(this.#firstRun) {
+      this.#firstRun = false
+      this.track()
+
+      return this.#cacheValue
     }
 
-    if(this.#dirty) {
+
+    if(this.#isDirty) {
+      const oldValue = this.#cacheValue;
       this.#cacheValue = this.#fn()
-      this.#dirty = false
-    }
 
+      if(!Object.is(oldValue, this.#cacheValue)) {
+        this.#notify()
+      }
+    }
 
     return this.#cacheValue
   }
 
   track() {
     const invalidate = () => {
-      this.#dirty = false
-
-      this.#deps.forEach(cb => cb())
+      this.#isDirty = true
+      this.#notify()
     }
 
     pushEffect(invalidate)
 
-    this.#fn()
+    this.#cacheValue = this.#fn()
 
     popEffect()
+    stopCollecting()
   }
 
+  unsubscribe(fn: any) {
+    this.#subscribers.delete(fn)
+  }
+
+  #notify() {
+    this.#subscribers.forEach(scheduleEffect)
+  }
+
+  getVersion() {
+    return this.#cachedVersion
+  }
 }
 
 export function computed<T>(fn: ComputedValue<T>) {

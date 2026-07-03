@@ -1,4 +1,4 @@
-import { getCurrentEffect } from "./effect.ts"
+import { Effect, getCurrentEffect, registerSource, scheduleEffect } from "./effect.ts"
 
 export type Listener<T> = (val?: T) => void
 
@@ -7,7 +7,8 @@ function compare<T>(a: T, b: T) {
 }
 export class Signal<T> {
   #value: T
-  #subscribers = new Set<Listener<T>>()
+
+  #subscribers = new Set<Effect | (Listener<T>)>()
 
   constructor(value: T) {
     this.#value = value
@@ -21,11 +22,23 @@ export class Signal<T> {
     }
   }
 
+  unsubscribe(fn: Listener<T>) {
+    this.#subscribers.delete(fn)
+  }
+
   get() {
     const effect = getCurrentEffect()
+
+
     if(effect) {
       this.#subscribers.add(effect)
+
+      if(effect instanceof Effect) {
+        effect.addSource(this)
+      }
     }
+
+    registerSource(this)
 
     return this.#value
   }
@@ -33,7 +46,7 @@ export class Signal<T> {
   set(newValue: T) {
     if(!compare(this.#value, newValue)) {
       this.#value = newValue
-      this.#subscribers.forEach(cb => cb(newValue))
+      this.#subscribers.forEach(scheduleEffect)
     }
   }
 }
