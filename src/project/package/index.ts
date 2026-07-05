@@ -1,29 +1,15 @@
-import { computed, effect, from, ref } from "./reactive/index.ts"
-
+import { filter, map } from "./reactive/operators.ts"
+import { ref } from "./reactive/signal.ts"
 
 const a = ref(1)
-const b = computed(() => a.get() * 2)
-const c = computed(() => a.get() + 1)
-const d = computed(() => b.get() + c.get())
+const doubled = map(a, v => v * 2)
 
-effect(() => {
-  console.log(d.get())
+const onlyBig = filter(doubled, v => {
+  return v ? v > 5 : false
 })
 
-// Первый запуск: 4
-// a.set(2): должно быть 7, эффект вызывается 1 раз
-a.set(2)
+onlyBig.subscribe(v => console.log('big:', v))
 
-
-const stream = {
-  subscribe(next: (v: number) => void) {
-    let i = 0
-
-    const id = setInterval(() => next(i++), 1000)
-    return { unsubscribe: () => clearInterval(id) }
-  }
-}
-
-const s = from(stream, 10)
-
-effect(() => console.log(s.get()))
+a.set(2)  // doubled=4 → тишина
+a.set(3)  // doubled=6 → "big: 6"
+a.set(4)  // doubled=8 → "big: 8"

@@ -1,6 +1,6 @@
-import { isComputedInvalidate } from "./computed.ts"
-import { getCurrentEffect, type IEffect, isEffect } from "./effect.ts"
+import { getCurrentEffect, type IEffect, isEffect, scheduleEffect } from "./effect.ts"
 import type { StreamLike } from "./stream.ts"
+import { isFunction } from "./utils.ts"
 
 export type Listener<T> = (val?: T) => void
 
@@ -12,24 +12,34 @@ export class Signal<T> {
   #value: T
   #version = 0
 
-  #subscribers = new Set<Listener<T> | IEffect>() 
+  #subscribers = new Set<((val?: T) => void)| IEffect>() 
   #equalFunction: (a?: T, b?: T) => boolean
 
-  constructor(value: T, options: SignalOptions<T>) {
+  constructor(value: T, options?: SignalOptions<T>) {
     this.#value = value
-    this.#equalFunction = options.equal
+    this.#equalFunction = options?.equal ?? Object.is
   }
 
-  static fromStream<T>(stream: StreamLike<T>, initial: T, options: SignalOptions<T>) {
+  static fromStream<T>(stream: StreamLike<T>, initial: T, options?: SignalOptions<T>) {
     const signal = new Signal<T>(initial, options)
 
-    stream.subscribe((value) => signal.set(value))
+    stream.subscribe((value) => signal.set(value!))
 
     return signal
   }
 
-  static toStream<T>(): StreamLike<T> {
-    
+  toStream(): StreamLike<T> {    
+    return {
+      subscribe: (next: (val?: T) => void) => {
+        this.subscribe(next)
+
+        return {
+          unsubscribe() {
+            this.unsubscribe()
+          },
+        }
+      }
+    }
   }
 
   get() {
@@ -40,7 +50,7 @@ export class Signal<T> {
       effect.addSource(this)
     }
 
-    if(isComputedInvalidate(effect)) {
+    if(isFunction(effect)) {
       this.#subscribers.add(effect)
     }
 
@@ -52,9 +62,10 @@ export class Signal<T> {
       this.#value = value
 
       this.#version++
+
       this.#subscribers.forEach(listener => {
-        if(isEffect(listener)) listener.run()
-        else if(isComputedInvalidate(listener)) listener()
+        if(isEffect(listener)) scheduleEffect(listener)
+        else if(isFunction(listener)) listener(this.#value)
       })
     }
   }
@@ -63,7 +74,7 @@ export class Signal<T> {
     return this.#version
   }
 
-  subscribe(listener: Listener<T>) {
+  subscribe(listener: ((val?: T) => void)) {
     this.#subscribers.add(listener)
 
     return () => {
@@ -84,10 +95,6 @@ export function ref<T>(val: T, options = defaultOptions()) {
   return new Signal(val, options)
 }
 
-export function from<T>(stream: StreamLike<T>, initial: T, options = defaultOptions()) {
-  return Signal.fromStream<T>(stream, initial, options)
-}
-
-export function stream<T>() {
-  return Signal.toStream<T>()
+export function from<T>(stream: StreamLike<T>, initial: T) {
+  return Signal.fromStream<T>(stream, initial)
 }

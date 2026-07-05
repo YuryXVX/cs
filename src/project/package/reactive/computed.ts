@@ -66,6 +66,7 @@ class Computed<T> {
 
     pushEffect(invalidate)
 
+
     this.#cacheValue = this.#fn()
 
     popEffect()
@@ -76,12 +77,32 @@ class Computed<T> {
     this.notify()
   }
 
+  collectSources() {
+    const invalidate = () => {
+      this.#dirty = true
+      this.notify()
+    }
+
+    pushEffect(invalidate)
+    this.#fn()  // сигналы подписывают invalidate
+    popEffect()
+    // #cacheValue не трогаем, #dirty не меняем
+  }
+
   notify() {
     this.#subscribers.forEach(subscriber => {
       if(isEffect(subscriber)) scheduleEffect(subscriber)
       else if(isComputed<T>(subscriber)) subscriber.invalidate()
       else if(typeof subscriber === 'function') subscriber(this.#cacheValue)
     })
+  }
+
+  subscribe(listener: (val?: T) => void) {
+    this.#subscribers.add(listener)
+
+    return () => {
+      this.#subscribers.delete(listener)
+    }
   }
 }
 
