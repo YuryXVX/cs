@@ -7,52 +7,42 @@ export interface IEffect {
 
 type EffectFn = (() => () => void) | (() => void)
 
+type Dependency = {
+  unsubscribe(listener: IEffect): void
+}
+
 class Effect implements IEffect {
   #fn: EffectFn
 
-  #run: () => void
   #cleanup: (() => void) | null = null
   #disposed = false
 
-  #sources = new Set<Signal<any>>()
+  #sources = new Set<Dependency>()
 
   constructor(effect: EffectFn) {
     this.#fn = effect
-
-    this.#run = () => {
-      const expose = this.#fn()
-
-      if(typeof expose == 'function') {
-        this.#cleanup = expose
-      }
-    }
   }
 
   run = () => {
     if(this.#disposed) return
 
-    const result = this.#fn()
-
-    if(typeof result === 'function') {
-      this.#cleanup = result
-    }
-
-    popEffect()
-  }
-
-  rerun() {
-    if(this.#disposed) return
-    
     if(this.#cleanup != null) {
       this.#cleanup()
       this.#cleanup = null
     }
 
-    this.#sources.forEach((signal) => signal.unsubscribe(this))
-
+    this.#sources.forEach((source) => source.unsubscribe(this))
     this.#sources.clear()
 
-    this.#run()
+    pushEffect(this)
+
+    const result = this.#fn()
+
+    popEffect()
+
+    if(typeof result === 'function') {
+      this.#cleanup = result
+    }
   }
 
   dispose = () => {
@@ -65,12 +55,12 @@ class Effect implements IEffect {
       this.#cleanup = null
     }
 
-    this.#sources.forEach((signal) => signal.unsubscribe(this))
+    this.#sources.forEach((source) => source.unsubscribe(this))
     this.#sources.clear()
   }
 
-  addSource(signal: Signal<any>) {
-    this.#sources.add(signal)
+  addSource(source: Signal<any> | Dependency) {
+    this.#sources.add(source)
   }
 }
 
@@ -78,13 +68,12 @@ const pendingEffects = new Set<IEffect | EffectFn>()
 
 const stackEffect: (IEffect | EffectFn)[] = []
 
-
 export function pushEffect(effect: Effect | EffectFn) {
   stackEffect.push(effect)
 }
 
 export function popEffect() {
-   stackEffect.pop()
+  stackEffect.pop()
 }
 
 export function scheduleEffect(effect: IEffect) {
@@ -117,14 +106,11 @@ export function getCurrentEffect() {
 
 export function effect(effectFn: EffectFn) {
   const effect = new Effect(effectFn)
-  pushEffect(effect)
 
-  invariantEffect(effect)
-
-  popEffect()
+  effect.run()
 
   return () => effect.dispose()
-} 
+}
 
 export function isEffect(effect: unknown): effect is Effect {
   return effect instanceof Effect

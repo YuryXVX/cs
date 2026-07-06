@@ -11,7 +11,7 @@ export function isComputedInvalidate(value: unknown) {
   return typeof value === 'function'
 }
 
-class Computed<T> {
+export class Computed<T> {
   #fn: ComputedFn<T>
   #cacheValue: T | undefined
 
@@ -30,46 +30,44 @@ class Computed<T> {
   get(): T {
     const effect = getCurrentEffect()
 
-    if(effect) {
+    if(isEffect(effect)) {
+      this.#subscribers.add(effect)
+      effect.addSource(this)
+    } else if(effect) {
       this.#subscribers.add(effect)
     }
 
     if(this.#firstRun) {
       this.#firstRun = false
-
-      this.track()
-
+      this.#recompute()
       return this.#cacheValue!
     }
 
-
     if(this.#dirty) {
-      const prev = this.#cacheValue
-      const next = this.#fn()
-      this.#dirty = false
-
-      if(!Object.is(prev, next)) {
-        this.#cacheValue = next
-      }
+      this.#recompute()
     }
 
     return this.#cacheValue!
   }
 
+  #invalidate = () => {
+    this.#dirty = true
+    this.notify()
+  }
 
-  track() {
-    const invalidate = () => {
-      this.#dirty = true;
+  #recompute() {
+    pushEffect(this.#invalidate)
 
-      this.notify()
-    }
-
-    pushEffect(invalidate)
-
-
-    this.#cacheValue = this.#fn()
+    const prev = this.#cacheValue
+    const next = this.#fn()
 
     popEffect()
+
+    this.#dirty = false
+
+    if(!Object.is(prev, next)) {
+      this.#cacheValue = next
+    }
   }
 
   invalidate() {
@@ -77,19 +75,15 @@ class Computed<T> {
     this.notify()
   }
 
-  collectSources() {
-    const invalidate = () => {
-      this.#dirty = true
-      this.notify()
+  notify() {
+    const hasFnSubscriber = [...this.#subscribers].some(
+      subscriber => typeof subscriber === 'function'
+    )
+
+    if(hasFnSubscriber && this.#dirty) {
+      this.#recompute()
     }
 
-    pushEffect(invalidate)
-    this.#fn()  // сигналы подписывают invalidate
-    popEffect()
-    // #cacheValue не трогаем, #dirty не меняем
-  }
-
-  notify() {
     this.#subscribers.forEach(subscriber => {
       if(isEffect(subscriber)) scheduleEffect(subscriber)
       else if(isComputed<T>(subscriber)) subscriber.invalidate()
@@ -101,8 +95,12 @@ class Computed<T> {
     this.#subscribers.add(listener)
 
     return () => {
-      this.#subscribers.delete(listener)
+      this.unsubscribe(listener)
     }
+  }
+
+  unsubscribe(listener: Listener<T> | IEffect) {
+    this.#subscribers.delete(listener)
   }
 }
 

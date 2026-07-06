@@ -28,16 +28,12 @@ export class Signal<T> {
     return signal
   }
 
-  toStream(): StreamLike<T> {    
+  toStream(): StreamLike<T> {
     return {
       subscribe: (next: (val?: T) => void) => {
-        this.subscribe(next)
+        const unsubscribe = this.subscribe(next)
 
-        return {
-          unsubscribe() {
-            this.unsubscribe()
-          },
-        }
+        return { unsubscribe }
       }
     }
   }
