@@ -11,11 +11,11 @@ dequeue.unshift(2); // 2
 dequeue.unshift(3); // 3
 
 console.log(dequeue.length); // 3
-dequeue.shift();             // Удаляет с начала, возвращает удаленный элемент - 3
+dequeue.shift(); // Удаляет с начала, возвращает удаленный элемент - 3
 
 dequeue.push(4);
 dequeue.push(5);
 dequeue.push(6);
 
-dequeue.pop();               // Удаляет с конца, возвращает удаленный элемент - 6
+dequeue.pop(); // Удаляет с конца, возвращает удаленный элемент - 6
 ```

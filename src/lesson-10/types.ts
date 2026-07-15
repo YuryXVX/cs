@@ -10,15 +10,15 @@ export type TypedArray =
   | BigInt64Array
   | BigUint64Array;
 
-export type Nullable<T> =  T | null;
+export type Nullable<T> = T | null;
 
 export interface Chunk<T = TypedArray> {
-  data: T
-  next: Nullable<Chunk<T>>
-  prev: Nullable<Chunk<T>>
+  data: T;
+  next: Nullable<Chunk<T>>;
+  prev: Nullable<Chunk<T>>;
 
-  start: number
-  end: number
+  start: number;
+  end: number;
 }
 
-export type TypedArrayConstructor = new (cap: number) => TypedArray
+export type TypedArrayConstructor = new (cap: number) => TypedArray;

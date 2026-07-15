@@ -2,7 +2,7 @@
   "watch": ["src"],                   
   "ext": "ts,tsx,json",               
   "ignore": ["dist", "node_modules"],   
-  "exec": "tsx src/project/package/index.ts",
+  "exec": "tsx src/lesson-23/index.ts",
   "delay": "250",
   "env": {
     "NODE_ENV": "development"
