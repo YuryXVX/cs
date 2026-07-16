@@ -1,167 +1,170 @@
 import { HeapPointer, StackPointer } from "./pointer.ts";
 
-import type { BufferLike, HeapBlock, IMemory, MemoryBlock, MemoryOptions } from "./types.ts";
+import type {
+  BufferLike,
+  HeapBlock,
+  IMemory,
+  MemoryBlock,
+  MemoryOptions,
+} from "./types.ts";
 
 export class Memory implements IMemory {
-  #size: number
+  #size: number;
 
-  #stackSize: number
-  #stackPtr: number
-  #frames: MemoryBlock[]
+  #stackSize: number;
+  #stackPtr: number;
+  #frames: MemoryBlock[];
 
-  #heapSize: number
-  #heapPtr: number
-  #allocations: Map<number, HeapBlock>
-  #heapFreeBlocks: MemoryBlock[]
-  
-  #buffer: ArrayBuffer
-  #uint8: Uint8Array
+  #heapSize: number;
+  #heapPtr: number;
+  #allocations: Map<number, HeapBlock>;
+  #heapFreeBlocks: MemoryBlock[];
+
+  #buffer: ArrayBuffer;
+  #uint8: Uint8Array;
 
   #nextPointerId: number;
 
-
   constructor(size: number, opt: MemoryOptions) {
-    this.#size = size
-    this.#buffer = new ArrayBuffer(size)
-    this.#uint8 = new Uint8Array(this.#buffer)
+    this.#size = size;
+    this.#buffer = new ArrayBuffer(size);
+    this.#uint8 = new Uint8Array(this.#buffer);
 
-    // stack 
-    this.#stackSize = opt.stack ?? 0
-    this.#stackPtr = 0
-    this.#frames = []
+    // stack
+    this.#stackSize = opt.stack ?? 0;
+    this.#stackPtr = 0;
+    this.#frames = [];
 
     // heap
-    this.#heapSize = size
-    this.#allocations = new Map()
-    this.#heapFreeBlocks = []
+    this.#heapSize = size;
+    this.#allocations = new Map();
+    this.#heapFreeBlocks = [];
 
-    this.#heapPtr = this.#size
+    this.#heapPtr = this.#size;
 
-    this.#nextPointerId = 0
+    this.#nextPointerId = 0;
   }
 
   push(data: BufferLike) {
-    const bytes = this.#getBytes(data)
+    const bytes = this.#getBytes(data);
 
-    if((bytes.length + this.#stackPtr) > this.#stackSize) {
-      throw new Error('Stack overflow')
+    if (bytes.length + this.#stackPtr > this.#stackSize) {
+      throw new Error("Stack overflow");
     }
 
-    this.#uint8.set(bytes, this.#stackPtr)
-    
-    const offset = this.#stackPtr
-    const size = bytes.length
+    this.#uint8.set(bytes, this.#stackPtr);
 
-    this.#frames.push({ offset, size })
+    const offset = this.#stackPtr;
+    const size = bytes.length;
 
-    this.#stackPtr += bytes.length
+    this.#frames.push({ offset, size });
 
-    return new StackPointer(this, offset, size)
+    this.#stackPtr += bytes.length;
+
+    return new StackPointer(this, offset, size);
   }
 
   pop() {
-    if(this.#frames.length === 0) {
-      throw Error('Stack underflow: stack is empty')
+    if (this.#frames.length === 0) {
+      throw Error("Stack underflow: stack is empty");
     }
 
-    const block = this.#frames.pop()
+    const block = this.#frames.pop();
 
-    if(!block) {
-      throw new Error('Error stack UB');
+    if (!block) {
+      throw new Error("Error stack UB");
     }
 
     const start = block.offset;
     const end = block.size;
 
-    for(let i = start; i < start + end; i++) {
-      this.#uint8[i] = 0
+    for (let i = start; i < start + end; i++) {
+      this.#uint8[i] = 0;
     }
 
     return block;
   }
 
   alloc(size: number) {
-    if(size < 0) {
-      throw new Error('Invalid allocation size')
+    if (size < 0) {
+      throw new Error("Invalid allocation size");
     }
 
-    size = Math.ceil(size / 8) * 8
+    size = Math.ceil(size / 8) * 8;
 
-    const freeBlock = this.#findBlock(size)
+    const freeBlock = this.#findBlock(size);
 
     let offset = 0;
 
-    if(freeBlock) {
-      offset = freeBlock.offset
+    if (freeBlock) {
+      offset = freeBlock.offset;
 
-      this.#removeBlock(freeBlock)
+      this.#removeBlock(freeBlock);
 
-      const remainingSize = freeBlock.size - size
+      const remainingSize = freeBlock.size - size;
 
       if (remainingSize >= 8) {
         this.#heapFreeBlocks.push({
           offset: freeBlock.offset + size,
-          size: remainingSize
+          size: remainingSize,
         });
       }
     } else {
       if (offset < this.#stackPtr) {
-        throw new Error('Heap overflow: collision with stack');
+        throw new Error("Heap overflow: collision with stack");
       }
 
-      offset = this.#heapPtr - size 
+      offset = this.#heapPtr - size;
 
-      this.#heapPtr = offset
+      this.#heapPtr = offset;
     }
 
-
-    const id = this.#nextPointerId++
+    const id = this.#nextPointerId++;
 
     this.#allocations.set(id, {
-      freed: false, 
-      size, 
-      offset
-    })
+      freed: false,
+      size,
+      offset,
+    });
 
-    return new HeapPointer(id, this, offset, size)
+    return new HeapPointer(id, this, offset, size);
   }
 
   free(id: number) {
-    if(this.#allocations.has(id)) {
-      const block = this.#allocations.get(id)
+    if (this.#allocations.has(id)) {
+      const block = this.#allocations.get(id);
 
-      if(!block) {
-        throw new Error('Invalid pointer: not found');
+      if (!block) {
+        throw new Error("Invalid pointer: not found");
       }
 
-      this.#uint8.fill(0, block.offset, block.offset + block.size)
+      this.#uint8.fill(0, block.offset, block.offset + block.size);
 
       this.#heapFreeBlocks.push({
-        offset: block.offset, 
-        size: block.size
-      })
+        offset: block.offset,
+        size: block.size,
+      });
 
-      this.#allocations.delete(id)
+      this.#allocations.delete(id);
 
-      this.#defragment()
+      this.#defragment();
     }
   }
 
   #getBytes(buf: BufferLike) {
-    if(buf instanceof Uint8Array) {
-      return buf
+    if (buf instanceof Uint8Array) {
+      return buf;
     }
 
-    if(buf instanceof ArrayBuffer) {
-      return new Uint8Array(buf)
+    if (buf instanceof ArrayBuffer) {
+      return new Uint8Array(buf);
     }
 
-    if(ArrayBuffer.isView(buf)) {
-      return new Uint8Array(buf.buffer, buf.byteOffset, buf.length)
+    if (ArrayBuffer.isView(buf)) {
+      return new Uint8Array(buf.buffer, buf.byteOffset, buf.length);
     }
 
-
-    throw Error('Data must be an ArrayBuffer or TypedArray')
+    throw Error("Data must be an ArrayBuffer or TypedArray");
   }
 
   read(offset: number, size: number) {
@@ -171,21 +174,21 @@ export class Memory implements IMemory {
   write(data: BufferLike, offset: number) {
     const bytes = this.#getBytes(data);
 
-    if(offset < 0 || (offset + bytes.length) > this.#size) {
-      throw new Error('Write out of bounds');
+    if (offset < 0 || offset + bytes.length > this.#size) {
+      throw new Error("Write out of bounds");
     }
 
-    this.#uint8.set(bytes, offset)
+    this.#uint8.set(bytes, offset);
   }
 
   #findBlock(size: number) {
-    let bestBlock: MemoryBlock | undefined
-    let bestFitSize = Infinity
+    let bestBlock: MemoryBlock | undefined;
+    let bestFitSize = Infinity;
 
-    for(const block of this.#heapFreeBlocks) {
-      if(block.size >= size) {
-        if(block.size < bestFitSize) {
-          bestBlock = block
+    for (const block of this.#heapFreeBlocks) {
+      if (block.size >= size) {
+        if (block.size < bestFitSize) {
+          bestBlock = block;
           bestFitSize = block.size;
 
           if (block.size === size) {
@@ -195,7 +198,7 @@ export class Memory implements IMemory {
       }
     }
 
-    return bestBlock
+    return bestBlock;
   }
 
   #removeBlock(block: MemoryBlock) {
@@ -207,43 +210,43 @@ export class Memory implements IMemory {
   }
 
   #defragment() {
-    if(this.#heapFreeBlocks.length < 2) {
-      return
+    if (this.#heapFreeBlocks.length < 2) {
+      return;
     }
 
-    this.#heapFreeBlocks.sort((a, b) => a.offset - b.offset)
+    this.#heapFreeBlocks.sort((a, b) => a.offset - b.offset);
 
-    const merged = [this.#heapFreeBlocks[0]!]
+    const merged = [this.#heapFreeBlocks[0]!];
 
-    for(let i = 1; i < this.#heapFreeBlocks.length; i++) {
-      const current = this.#heapFreeBlocks[i]
-      const last = merged[merged.length - 1]
-      
-      if(last && current) {
-        if(last.offset + last.size === current?.offset) {
-          last.size += current.size
+    for (let i = 1; i < this.#heapFreeBlocks.length; i++) {
+      const current = this.#heapFreeBlocks[i];
+      const last = merged[merged.length - 1];
+
+      if (last && current) {
+        if (last.offset + last.size === current?.offset) {
+          last.size += current.size;
         } else {
-          merged.push(current)
+          merged.push(current);
         }
       }
     }
 
-    this.#heapFreeBlocks = merged
+    this.#heapFreeBlocks = merged;
   }
-    
+
   getStat() {
     const usedHeap = this.#size - this.#heapSize;
     const freeInHeap = this.#heapFreeBlocks.reduce((sum, b) => sum + b.size, 0);
-    
+
     return {
       stackUsed: this.#stackPtr,
       stackFree: this.#stackSize - this.#stackPtr,
       heapTotal: this.#size - this.#stackSize,
       heapUsed: usedHeap - freeInHeap,
-      heapFree: (this.#heapPtr - this.#stackSize) + freeInHeap,
+      heapFree: this.#heapPtr - this.#stackSize + freeInHeap,
       allocatedBlocks: this.#allocations.size,
       freeBlocks: this.#heapFreeBlocks.length,
-      fragmentation: this.#heapFreeBlocks.length > 1 ? 'fragmented' : 'ok'
+      fragmentation: this.#heapFreeBlocks.length > 1 ? "fragmented" : "ok",
     };
   }
 }

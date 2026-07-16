@@ -11,13 +11,12 @@ export interface IHashMap<K, V> {
 }
 
 export interface IHasher<Key = unknown> {
-  hash(key: Key, cap: number): number
-  equal(a: Key, b: Key): boolean
+  hash(key: Key, cap: number): number;
+  equal(a: Key, b: Key): boolean;
 }
 
-
 export interface HashMapConfig {
-  capacity?: number
-  hasher?: IHasher
-  loadFactor?: number
+  capacity?: number;
+  hasher?: IHasher;
+  loadFactor?: number;
 }

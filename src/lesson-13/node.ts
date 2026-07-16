@@ -3,6 +3,6 @@ export class ChainNode<K, V> {
     public key: K,
     public value: V,
     // сыылка на следуюшую ноды коллизии
-    public next: ChainNode<K, V> | null = null
+    public next: ChainNode<K, V> | null = null,
   ) {}
 }

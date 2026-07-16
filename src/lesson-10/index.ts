@@ -1,4 +1,9 @@
-import type { Chunk, Nullable, TypedArray, TypedArrayConstructor } from "./types.ts";
+import type {
+  Chunk,
+  Nullable,
+  TypedArray,
+  TypedArrayConstructor,
+} from "./types.ts";
 
 export class Dequeue<T extends TypedArray> {
   #ArrayType: TypedArrayConstructor;
@@ -25,22 +30,21 @@ export class Dequeue<T extends TypedArray> {
       prev: null,
       start: 0,
       end: 0,
-    }
+    };
   }
 
   #isChunkFull(chunk: Chunk<T>) {
-    return chunk.end === this.#capacity
+    return chunk.end === this.#capacity;
   }
 
-
   #removeChunk(chunk: Chunk<T>) {
-    const next = chunk.next
-    const prev = chunk.prev
+    const next = chunk.next;
+    const prev = chunk.prev;
 
-    if(prev) {
-      prev.next = next
+    if (prev) {
+      prev.next = next;
     } else {
-      this.#head = next
+      this.#head = next;
     }
 
     if (next) {
@@ -49,76 +53,72 @@ export class Dequeue<T extends TypedArray> {
       this.#tail = prev;
     }
 
-    if(this.#length === 0) {
-      this.#head = null
-      this.#tail = null
+    if (this.#length === 0) {
+      this.#head = null;
+      this.#tail = null;
     }
   }
 
   #isChunkEmpty(chunk: Chunk<T>) {
-    return chunk.end === chunk.start
+    return chunk.end === chunk.start;
   }
 
   get length() {
-    return this.#length
+    return this.#length;
   }
- 
+
   push(value: number): number {
-    if(this.#tail == null) {
-      const chunk = this.#createChunk()
+    if (this.#tail == null) {
+      const chunk = this.#createChunk();
 
-      this.#head = chunk
-      this.#tail = chunk
-    } 
+      this.#head = chunk;
+      this.#tail = chunk;
+    }
 
-    if(this.#isChunkFull(this.#tail)) {
+    if (this.#isChunkFull(this.#tail)) {
       const newChunk = this.#createChunk();
       newChunk.prev = this.#tail;
       this.#tail.next = newChunk;
       this.#tail = newChunk;
     }
 
-    this.#tail.data[this.#tail.end] = value
-    this.#tail.end++
+    this.#tail.data[this.#tail.end] = value;
+    this.#tail.end++;
 
-    this.#length++
+    this.#length++;
 
-
-    return this.#length
+    return this.#length;
   }
-
 
   pop() {
     if (this.#length === 0 || this.#tail === null) {
       return undefined;
     }
 
-    const lastIndex = this.#tail.end - 1
+    const lastIndex = this.#tail.end - 1;
 
-    const value = this.#tail.data[lastIndex]
+    const value = this.#tail.data[lastIndex];
 
-    this.#tail.data[lastIndex] = 0
-    this.#tail.end--
-    this.#length--
+    this.#tail.data[lastIndex] = 0;
+    this.#tail.end--;
+    this.#length--;
 
-
-    if(this.#isChunkEmpty(this.#tail)) {
-      this.#removeChunk(this.#tail)
+    if (this.#isChunkEmpty(this.#tail)) {
+      this.#removeChunk(this.#tail);
     }
 
-    return value
+    return value;
   }
 
-
   unshift(val: number) {
-    if(this.#head == null) {
-      const chunk = this.#createChunk()
+    if (this.#head == null) {
+      const chunk = this.#createChunk();
 
-      this.#head = chunk
-      this.#tail = chunk
-    }  
+      this.#head = chunk;
+      this.#tail = chunk;
+    }
 
-    if(this.#head.start === 0) {
+    if (this.#head.start === 0) {
       const newChunk = this.#createChunk();
 
       newChunk.start = this.#capacity;
@@ -137,13 +137,13 @@ export class Dequeue<T extends TypedArray> {
   }
 
   shift() {
-    if(this.#length === 0 || this.#head == null) {
-      return undefined
+    if (this.#length === 0 || this.#head == null) {
+      return undefined;
     }
 
-    const firstIndex = this.#head.start
+    const firstIndex = this.#head.start;
 
-    const value = this.#head.data[firstIndex]
+    const value = this.#head.data[firstIndex];
 
     this.#head.data[firstIndex] = 0;
     this.#head.start++;
@@ -152,50 +152,45 @@ export class Dequeue<T extends TypedArray> {
     if (this.#isChunkEmpty(this.#head)) {
       this.#removeChunk(this.#head);
     }
-    
-    return value
-  }
 
+    return value;
+  }
 
   toArray() {
-    const result: (number | bigint)[] = []
+    const result: (number | bigint)[] = [];
 
-    let ptr = this.#head 
+    let ptr = this.#head;
 
-
-    while(ptr !== null) {
-      ptr.data.forEach(el => result.push(el))
-      ptr = ptr.next
+    while (ptr !== null) {
+      ptr.data.forEach((el) => result.push(el));
+      ptr = ptr.next;
     }
 
-    return result
+    return result;
   }
 
-
   isEmpty() {
-    return this.#length === 0
+    return this.#length === 0;
   }
 
   [Symbol.iterator]() {
-    let current = this.#head
+    let current = this.#head;
 
-    let index = current ? current.start : 0
-
+    let index = current ? current.start : 0;
 
     return {
       next: () => {
-        if(current == null) {
-          return { value: undefined, done: true }
+        if (current == null) {
+          return { value: undefined, done: true };
         }
 
-        const value = current.data[index]
+        const value = current.data[index];
 
-        const result = { value, done: false }
+        const result = { value, done: false };
 
         index++;
 
         if (index >= current.end) {
-
           current = current.next;
 
           if (current !== null) {
@@ -203,10 +198,8 @@ export class Dequeue<T extends TypedArray> {
           }
         }
 
-        return result
-      }
-    }
+        return result;
+      },
+    };
   }
 }
-
-
