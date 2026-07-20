@@ -15,10 +15,15 @@ console.log([...take(randomInt, 15)]);
 ```javascript
 const randomInt = random(0, 100);
 
-console.log([...take(filter(randomInt, (el) => el > 30), 15)]);
+console.log([
+  ...take(
+    filter(randomInt, (el) => el > 30),
+    15,
+  ),
+]);
 ```
 
-##  Функция enumerate
+## Функция enumerate
 
 Необходимо написать функцию, которая принимает любой Iterable объект и возвращает итератор по парам `[номер итерации, элемент]`. Нумерация начинается с 0.
 
@@ -33,7 +38,7 @@ console.log([...take(enumerate(randomInt), 3)]); // [[0, ...], [1, ...], [2, ...
 Необходимо написать функцию, которая принимает множество Iterable объектов и возвращает итератор, последовательно выдающий элементы из каждого переданного итератора.
 
 ```javascript
-console.log([...seq([1, 2], new Set([3, 4]), 'bla')]); // [1, 2, 3, 4, 'b', 'l', 'a']
+console.log([...seq([1, 2], new Set([3, 4]), "bla")]); // [1, 2, 3, 4, 'b', 'l', 'a']
 ```
 
 ## Функция mapSeq

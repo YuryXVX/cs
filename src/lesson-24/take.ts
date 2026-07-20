@@ -1,21 +1,21 @@
 export function take<T>(iterable: Iterable<T>, limit: number) {
-  const iter = Iterator.from(iterable)
+  const iter = Iterator.from(iterable);
 
   return Iterator.from({
     next() {
-      if(limit === 0) {
+      if (limit === 0) {
         return {
           done: true,
-          value: undefined
-        }
+          value: undefined,
+        };
       }
 
-      limit--
-     
+      limit--;
+
       return {
         done: false,
-        value: iter.next().value
-      }
-    }
-  })
+        value: iter.next().value,
+      };
+    },
+  });
 }

@@ -1,22 +1,22 @@
 export function mapSeq<T>(
-    iterable: Iterable<T>,
-    operations: Iterable<(v: T) => T>
+  iterable: Iterable<T>,
+  operations: Iterable<(v: T) => T>,
 ) {
-    const iter = Iterator.from(iterable)
-   
-    return Iterator.from({
-        next() {
-           const current = iter.next()
+  const iter = Iterator.from(iterable);
 
-           if(current.done) return { done: true, value: undefined }
+  return Iterator.from({
+    next() {
+      const current = iter.next();
 
-           let result = current.value
+      if (current.done) return { done: true, value: undefined };
 
-           for(const cb of operations) {
-              result = cb(result)
-           }
+      let result = current.value;
 
-           return { done: false, value: result }
-        }
-    })
+      for (const cb of operations) {
+        result = cb(result);
+      }
+
+      return { done: false, value: result };
+    },
+  });
 }
